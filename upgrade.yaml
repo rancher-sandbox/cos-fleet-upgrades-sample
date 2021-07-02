@@ -1,0 +1,22 @@
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: cos-upgrade
+  namespace: system-upgrade
+  labels:
+    k3s-upgrade: server
+spec:
+  concurrency: 1
+  version: v1.19.4+k3s1
+  nodeSelector:
+    matchExpressions:
+      - {key: k3s.io/hostname, operator: Exists}
+  serviceAccountName: system-upgrade
+  cordon: true
+#  drain:
+#    force: true
+  upgrade:
+    image: quay.io/costoolkit/test-images:os2
+    command:
+    - "/usr/sbin/suc-upgrade"
