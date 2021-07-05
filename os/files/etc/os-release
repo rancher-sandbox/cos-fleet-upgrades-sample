@@ -1,0 +1,13 @@
+VERSION="42.42"
+PRETTY_NAME="FleetOS"
+NAME="FleetOS"
+
+# VERSION="20210425"
+ID="opensuse-tumbleweed"
+ID_LIKE="opensuse suse"
+VERSION_ID="20210425"
+ANSI_COLOR="0;32"
+CPE_NAME="cpe:/o:opensuse:tumbleweed:20210425"
+BUG_REPORT_URL=""
+HOME_URL=""
+DOCUMENTATION_URL=""

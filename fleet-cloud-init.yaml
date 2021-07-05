@@ -1,0 +1,85 @@
+name: "Fleet setup"
+stages:
+   initramfs:
+     - name: "Setup users"
+       ensure_entities:
+       - entity: |
+            kind: "shadow"
+            username: "root"
+            password: "cos"
+     - name: "Setting"
+       if: '[ -z "$(blkid -L COS_SYSTEM || true)" ]'
+       hostname: "fleet-master"
+       commands:
+       - |
+          target=/usr/local/.cos-state
+
+          # Always want the latest update of systemd conf from the image
+          mkdir -p ${target}/etc/systemd/
+          rsync -av /etc/systemd/ ${target}/etc/systemd/
+
+          # Only populate ssh conf once
+          if [ ! -e ${target}/etc/ssh ]; then
+            mkdir -p ${target}/etc/ssh/
+            rsync -a /etc/ssh/ ${target}/etc/ssh/
+          fi
+
+          sed -i '/overlay \/home /d' /etc/fstab
+          sed -i '/overlay \/opt /d' /etc/fstab
+          nsenter -m -t 1 -- umount /sysroot/home
+          nsenter -m -t 1 -- umount /sysroot/opt
+
+          # setup directories as persistent
+          for i in root opt home var/lib/rancher var/lib/kubelet etc/systemd etc/rancher etc/ssh usr/libexec var/log var/lib/wicked; do
+            mkdir -p ${target}/$i /$i
+            nsenter -m -t 1 -- mount /sysroot${target}/$i /sysroot/$i -t none -o bind
+          done
+
+          # This is hidden so that if you run some selinux label checking or relabeling the bind
+          # mount won't screw up things.  If you have two files at different paths they will get
+          # labeled with two different labels.
+          mkdir -p ${target}/empty
+          nsenter -m -t 1 -- mount /sysroot${target}/empty /sysroot${target} -o bind,ro
+
+          # ensure /var/log/journal exists so it's labeled correctly
+          nsenter -m -t 1 -- mkdir -p /sysroot/var/log/journal
+   initramfs.after:
+   - if: '[ -z "$(blkid -L COS_SYSTEM || true)" ]'
+     commands:
+     - restorecon -R -v /etc /home /opt /var /usr/local /tmp /srv /root
+   fs.before:
+   - if: '[ -z "$(blkid -L COS_SYSTEM || true)" ]'
+     commands:
+     - restorecon -R -v /etc /home /opt /var /usr/local /tmp /srv /root
+
+   network:
+     - commands:
+       - cp -rf /etc/sysconfig/network/ifcfg-eth0 /etc/sysconfig/network/ifcfg-eth1
+       - systemctl restart network
+     - name: "Setup k3s"
+       if: '[ -z "$(blkid -L COS_SYSTEM || true)" ]'
+       directories:
+       - path: "/usr/local/bin"
+         permissions: 0755
+         owner: 0
+         group: 0
+       commands:
+       - |
+            curl -sfL https://get.k3s.io | \
+            INSTALL_K3S_VERSION="v1.20.4+k3s1" \
+            INSTALL_K3S_EXEC="--tls-san {{.Values.node.hostname}}" \
+            INSTALL_K3S_SELINUX_WARN="true" \
+            sh -
+       - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+       - |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          helm -n fleet-system install --create-namespace --wait \
+              fleet-crd https://github.com/rancher/fleet/releases/download/v0.3.3/fleet-crd-0.3.3.tgz
+          helm -n fleet-system install --create-namespace --wait \
+              fleet https://github.com/rancher/fleet/releases/download/v0.3.3/fleet-0.3.3.tgz
+       # https://rancher.com/blog/2020/upgrade-k3s-kubernetes-cluster-system-upgrade-controller
+       - kubectl apply -f https://raw.githubusercontent.com/rancher/system-upgrade-controller/v0.6.2/manifests/system-upgrade-controller.yaml
+     - name: "Setup SSH keys"
+       authorized_keys:
+         root:
+         - github:mudler
