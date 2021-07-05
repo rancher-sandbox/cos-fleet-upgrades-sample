@@ -8,7 +8,7 @@ metadata:
     k3s-upgrade: server
 spec:
   concurrency: 1
-  version: v1.19.4+k3s1
+  version:  fleet-sample
   nodeSelector:
     matchExpressions:
       - {key: k3s.io/hostname, operator: Exists}
@@ -17,6 +17,6 @@ spec:
 #  drain:
 #    force: true
   upgrade:
-    image: quay.io/costoolkit/test-images:os2
+    image: quay.io/costoolkit/test-images
     command:
     - "/usr/sbin/suc-upgrade"
