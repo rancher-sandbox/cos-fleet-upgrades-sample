@@ -46,7 +46,7 @@ metadata:
   namespace: fleet-local
 spec:
   # Everything from this repo will be ran in this cluster. You trust me right?
-  repo: "https://github.com/mudler/fleet-sample"
+  repo: "https://github.com/rancher-sandbox/fleet-sample"
   branch: "main"
   paths:
   - manifests
