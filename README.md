@@ -28,7 +28,7 @@ In this sample we will:
 
 Download an ISO, or a qcow image from the Github artifacts of cOS. Or generate an iso of the image (check [here](https://github.com/mudler/os2) for another example). 
 
-If deploying on AWS/openstack/Cloud, use the `fleet-cloud-init.yaml` file as userdata. If deploying on baremetal/VMs, place `fleet-cloud-init.yaml` in `/oem` after install (or run the installer with `cos-installer $DEVICE --config fleet-cloud-init.yaml`).
+If deploying on AWS/openstack/Cloud, use the `fleet-cloud-init.yaml` file as userdata. If deploying on baremetal/VMs, place `fleet-cloud-init.yaml` in `/oem` after install (or run the installer with `cos-installer --config fleet-cloud-init.yaml $DEVICE`).
 
 Reboot, after some bootstraping time (check until all pods are running with `watch kubectl get pods -A`), you should have a k3s cluster with fleet and [system-upgrade-controller](https://github.com/rancher/system-upgrade-controller) deployed. 
 
